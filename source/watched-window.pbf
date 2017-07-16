@@ -15,7 +15,7 @@ Declare ResizeGadgetsWindowMain()
 
 
 Procedure OpenWindowMain(x = 0, y = 0, width = 600, height = 400)
-  WindowMain = OpenWindow(#PB_Any, x, y, width, height, "Watched", #PB_Window_SystemMenu | #PB_Window_MinimizeGadget | #PB_Window_MaximizeGadget | #PB_Window_SizeGadget | #PB_Window_ScreenCentered)
+  WindowMain = OpenWindow(#PB_Any, x, y, width, height, "Kodi - WatchedList", #PB_Window_SystemMenu | #PB_Window_MinimizeGadget | #PB_Window_MaximizeGadget | #PB_Window_SizeGadget | #PB_Window_ScreenCentered)
   PanelHandle = PanelGadget(#PB_Any, 10, 10, 580, 380)
   AddGadgetItem(PanelHandle, -1, "Movies")
   ListMovies = ListIconGadget(#PB_Any, 10, 10, 560, 340, "Title", 538, #PB_ListIcon_GridLines | #PB_ListIcon_FullRowSelect)
