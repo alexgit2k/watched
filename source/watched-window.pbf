@@ -9,32 +9,30 @@
 
 Global WindowMain
 
-Global PanelHandle, ListMovies, ListSeries, TextTitle
+Global PanelHandle, ListMovies, ListSeries
 
 Declare ResizeGadgetsWindowMain()
 
 
 Procedure OpenWindowMain(x = 0, y = 0, width = 600, height = 400)
   WindowMain = OpenWindow(#PB_Any, x, y, width, height, "Watched", #PB_Window_SystemMenu | #PB_Window_MinimizeGadget | #PB_Window_MaximizeGadget | #PB_Window_SizeGadget | #PB_Window_ScreenCentered)
-  PanelHandle = PanelGadget(#PB_Any, 10, 30, 580, 360)
+  PanelHandle = PanelGadget(#PB_Any, 10, 10, 580, 380)
   AddGadgetItem(PanelHandle, -1, "Movies")
-  ListMovies = ListIconGadget(#PB_Any, 10, 18, 560, 310, "Title", 538, #PB_ListIcon_GridLines | #PB_ListIcon_FullRowSelect)
+  ListMovies = ListIconGadget(#PB_Any, 10, 10, 560, 340, "Title", 538, #PB_ListIcon_GridLines | #PB_ListIcon_FullRowSelect)
   AddGadgetItem(PanelHandle, -1, "Series")
-  ListSeries = ListIconGadget(#PB_Any, 10, 8, 560, 320, "Title", 338, #PB_ListIcon_GridLines | #PB_ListIcon_FullRowSelect)
+  ListSeries = ListIconGadget(#PB_Any, 10, 10, 560, 340, "Title", 338, #PB_ListIcon_GridLines | #PB_ListIcon_FullRowSelect)
   AddGadgetColumn(ListSeries, 1, "Season", 100)
   AddGadgetColumn(ListSeries, 2, "Episode", 100)
   CloseGadgetList()
-  TextTitle = TextGadget(#PB_Any, 10, 10, 580, 20, "Watched")
 EndProcedure
 
 Procedure ResizeGadgetsWindowMain()
   Protected FormWindowWidth, FormWindowHeight
   FormWindowWidth = WindowWidth(WindowMain)
   FormWindowHeight = WindowHeight(WindowMain)
-  ResizeGadget(PanelHandle, 10, 30, FormWindowWidth - 20, FormWindowHeight - 40)
-  ResizeGadget(ListMovies, 10, 18, GetGadgetAttribute(PanelHandle,#PB_Panel_ItemWidth) - 20, GetGadgetAttribute(PanelHandle,#PB_Panel_ItemHeight) - 28)
-  ResizeGadget(ListSeries, 10, 8, GetGadgetAttribute(PanelHandle,#PB_Panel_ItemWidth) - 20, GetGadgetAttribute(PanelHandle,#PB_Panel_ItemHeight) - 18)
-  ResizeGadget(TextTitle, 10, 10, FormWindowWidth - 20, 20)
+  ResizeGadget(PanelHandle, 10, 10, FormWindowWidth - 20, FormWindowHeight - 20)
+  ResizeGadget(ListMovies, 10, 10, GetGadgetAttribute(PanelHandle,#PB_Panel_ItemWidth) - 20, GetGadgetAttribute(PanelHandle,#PB_Panel_ItemHeight) - 18)
+  ResizeGadget(ListSeries, 10, 10, GetGadgetAttribute(PanelHandle,#PB_Panel_ItemWidth) - 20, GetGadgetAttribute(PanelHandle,#PB_Panel_ItemHeight) - 18)
 EndProcedure
 
 Procedure WindowMain_Events(event)
