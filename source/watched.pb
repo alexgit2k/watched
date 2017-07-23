@@ -37,7 +37,10 @@ EndIf
 If DatabaseQuery(databaseHandle, moviesQuery$)
   While NextDatabaseRow(databaseHandle)
     ;Debug GetDatabaseString(databaseHandle,0)
-    AddGadgetItem(ListMovies,-1,GetDatabaseString(databaseHandle,0))
+    movieName$ = GetDatabaseString(databaseHandle,0)
+    movieYear$ = Left(Right(movieName$,5),4)
+    movieName$ = Left(movieName$, Len(movieName$)-7)
+    AddGadgetItem(ListMovies, -1, movieName$ + Chr(10) + movieYear$)
   Wend
   FinishDatabaseQuery(databaseHandle)
 Else
