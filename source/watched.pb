@@ -20,22 +20,20 @@ seriesColumns$  = ReadPreferenceString("seriesColumns","Title,338,Season,100,Epi
 seriesQuery$    = ReadPreferenceString("seriesQuery","")
 seriesSummarize = ReadPreferenceInteger("seriesSummarize",1)
 ; Window
+title$          = ReadPreferenceString("title","Kodi - WatchedList")
 font$           = ReadPreferenceString("font","")
 fontSize        = ReadPreferenceInteger("fontsize",12)
 width           = ReadPreferenceInteger("width",600)
 height          = ReadPreferenceInteger("height",400)
+startTab        = ReadPreferenceInteger("startTab",0)
 maximized       = ReadPreferenceInteger("maximized",0)
 
+; Procedures
+Declare StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized)
+
 ; GUI
-If LoadFont(0, font$, fontSize)
-	SetGadgetFont(#PB_Default, FontID(0))
-EndIf
 XIncludeFile "watched-window.pbf"
-OpenWindowMain(0, 0, width, height)
-If maximized = 1
-  ShowWindow_(WindowID(WindowMain),#SW_MAXIMIZE)
-EndIf
-ResizeGadgetsWindowMain()
+StartWindow(width, height, title$, font$, fontSize, startTab, maximized)
 
 ; GUI-Texts
 SetGadgetItemText(PanelHandle,0, moviesTabname$)
@@ -126,6 +124,23 @@ Repeat
     EndSelect
  Until Event = #PB_Event_CloseWindow
  
+; ----------------------------------------------------------------------------------------------------------------------------------
+
+Procedure StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized)
+  ; Load Font
+  If LoadFont(0, Font$, FontSize)
+    SetGadgetFont(#PB_Default, FontID(0))
+  EndIf
+  ; Open Window
+  OpenWindowMain(0, 0, Width, Height)
+  SetWindowTitle(WindowMain, Title$)
+  SetGadgetState(PanelHandle, StartTab)
+  If Maximized = 1
+    ShowWindow_(WindowID(WindowMain),#SW_MAXIMIZE)
+  EndIf
+  ResizeGadgetsWindowMain()
+EndProcedure
+
 ; IDE Options = PureBasic 5.60 (Windows - x86)
 ; CursorPosition = 28
 ; FirstLine = 9

@@ -21,8 +21,10 @@ Watched can be configured in the file watched.ini
 - seriesQuery: Query
 - seriesSummarize: Summarize episodes per season
 ### Window
+- title: Window-title
 - font: Font
 - fontsize: Fontsize
 - width: Window-width
 - height: Window-height
+- startTab: = Open tab-number at start (0-1)
 - maximized: Start window maximized
