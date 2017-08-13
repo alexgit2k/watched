@@ -11,20 +11,20 @@ EndIf
 ; Read Config
 database$       = ReadPreferenceString("database","")
 ; Movies
-moviesTabname$  = ReadPreferenceString("moviesTabname","Movies")
-moviesColumns$  = ReadPreferenceString("moviesColumns","Title,438,Year,100")
+moviesTabname$  = ReadPreferenceString("moviesTabname","")
+moviesColumns$  = ReadPreferenceString("moviesColumns","")
 moviesQuery$    = ReadPreferenceString("moviesQuery","")
 ; Series
-seriesTabname$  = ReadPreferenceString("seriesTabname","Series")
-seriesColumns$  = ReadPreferenceString("seriesColumns","Title,338,Season,100,Episode,100")
+seriesTabname$  = ReadPreferenceString("seriesTabname","")
+seriesColumns$  = ReadPreferenceString("seriesColumns","")
 seriesQuery$    = ReadPreferenceString("seriesQuery","")
-seriesSummarize = ReadPreferenceInteger("seriesSummarize",1)
+seriesSummarize = ReadPreferenceInteger("seriesSummarize",0)
 ; Window
-title$          = ReadPreferenceString("title","Kodi - WatchedList")
+title$          = ReadPreferenceString("title","")
 font$           = ReadPreferenceString("font","")
-fontSize        = ReadPreferenceInteger("fontsize",12)
-width           = ReadPreferenceInteger("width",600)
-height          = ReadPreferenceInteger("height",400)
+fontSize        = ReadPreferenceInteger("fontsize",0)
+width           = ReadPreferenceInteger("width",0)
+height          = ReadPreferenceInteger("height",0)
 startTab        = ReadPreferenceInteger("startTab",0)
 maximized       = ReadPreferenceInteger("maximized",0)
 
