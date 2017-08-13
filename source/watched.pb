@@ -29,6 +29,7 @@ startTab        = ReadPreferenceInteger("startTab",0)
 maximized       = ReadPreferenceInteger("maximized",0)
 
 ; Procedures
+Declare ConfigureList(Gadget, Position, Tabname$, Columns$)
 Declare StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized)
 
 ; GUI
@@ -36,16 +37,8 @@ XIncludeFile "watched-window.pbf"
 StartWindow(width, height, title$, font$, fontSize, startTab, maximized)
 
 ; GUI-Texts
-SetGadgetItemText(PanelHandle,0, moviesTabname$)
-RemoveGadgetColumn(ListMovies,#PB_All)
-For i = 1 To CountString(moviesColumns$,",")+1 Step 2
-  AddGadgetColumn(ListMovies, Int(i/2), StringField(moviesColumns$, i, ","), Val(StringField(moviesColumns$, i+1, ",")))
-Next
-SetGadgetItemText(PanelHandle,1, seriesTabname$)
-RemoveGadgetColumn(ListSeries,#PB_All)
-For i = 1 To CountString(seriesColumns$,",")+1 Step 2
-  AddGadgetColumn(ListSeries, Int(i/2), StringField(seriesColumns$, i, ","), Val(StringField(seriesColumns$, i+1, ",")))
-Next
+ConfigureList(ListMovies, 0, moviesTabname$, moviesColumns$)
+ConfigureList(ListSeries, 1, seriesTabname$, seriesColumns$)
 
 ; Open Database
 UseSQLiteDatabase()
@@ -125,6 +118,17 @@ Repeat
  Until Event = #PB_Event_CloseWindow
  
 ; ----------------------------------------------------------------------------------------------------------------------------------
+
+Procedure ConfigureList(List, Position, Tabname$, Columns$)
+  ; Headline
+  SetGadgetItemText(PanelHandle, Position, Tabname$)
+  ; Remove existing columns
+  RemoveGadgetColumn(List,#PB_All)
+  ; Add Columns
+  For i = 1 To CountString(Columns$,",")+1 Step 2
+    AddGadgetColumn(List, Int(i/2), StringField(Columns$, i, ","), Val(StringField(Columns$, i+1, ",")))
+  Next
+EndProcedure
 
 Procedure StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized)
   ; Load Font
