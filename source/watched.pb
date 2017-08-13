@@ -30,6 +30,9 @@ maximized       = ReadPreferenceInteger("maximized",0)
 
 ; Procedures
 Declare ConfigureList(Gadget, Position, Tabname$, Columns$)
+Declare Connect(Database$)
+Declare Disconnect(Database)
+Declare ExecuteQuery(Handle, Query$)
 Declare StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized)
 
 ; GUI
@@ -41,72 +44,63 @@ ConfigureList(ListMovies, 0, moviesTabname$, moviesColumns$)
 ConfigureList(ListSeries, 1, seriesTabname$, seriesColumns$)
 
 ; Open Database
-UseSQLiteDatabase()
-database$ = ReplaceString(database$, "%APPDATA%", GetEnvironmentVariable("APPDATA"), #PB_String_NoCase)
-databaseHandle = OpenDatabase(#PB_Any, database$, "", "")
-If (databaseHandle = 0)
-  MessageRequester("Error", "Can not open database: "+database$)
-  End
-EndIf
+databaseHandle = Connect(database$)
 
 ; Query Movies
-If DatabaseQuery(databaseHandle, moviesQuery$)
-  While NextDatabaseRow(databaseHandle)
-    ;Debug GetDatabaseString(databaseHandle,0)
-    movieName$ = GetDatabaseString(databaseHandle,0)
-    movieYear$ = Left(Right(movieName$,5),4)
-    movieName$ = Left(movieName$, Len(movieName$)-7)
-    AddGadgetItem(ListMovies, -1, movieName$ + Chr(10) + movieYear$)
-  Wend
-  FinishDatabaseQuery(databaseHandle)
-Else
-  MessageRequester("Error", "Can not execute: "+DatabaseError())
-EndIf
+ExecuteQuery(databaseHandle, moviesQuery$)
+While NextDatabaseRow(databaseHandle)
+  ;Debug GetDatabaseString(databaseHandle,0)
+  movieName$ = GetDatabaseString(databaseHandle,0)
+  movieYear$ = Left(Right(movieName$,5),4)
+  movieName$ = Left(movieName$, Len(movieName$)-7)
+  AddGadgetItem(ListMovies, -1, movieName$ + Chr(10) + movieYear$)
+Wend
+FinishDatabaseQuery(databaseHandle)
 
 ; Query Series
-If DatabaseQuery(databaseHandle, seriesQuery$)
-  While NextDatabaseRow(databaseHandle)
-    ;Debug GetDatabaseString(databaseHandle,0) + GetDatabaseString(databaseHandle,1) + GetDatabaseString(databaseHandle,2)
-    If seriesSummarize=0 
-      AddGadgetItem(ListSeries, -1, GetDatabaseString(databaseHandle,0) + Chr(10) + GetDatabaseString(databaseHandle,1) + Chr(10) + GetDatabaseString(databaseHandle,2))
-      Continue
-    EndIf
-    ; Summarize
-    seriesName$   = GetDatabaseString(databaseHandle,0)
-    seriesSeason  = GetDatabaseLong(databaseHandle,1)
-    seriesEpisode = GetDatabaseLong(databaseHandle,2)
-    ; First run
-    If seriesNamePrev$ = "" ; And seriesSeasonPrev=0 And seriesEpisode=0
-      seriesNamePrev$   = seriesName$
-      seriesSeasonPrev  = seriesSeason
-      seriesEpisodePrev = seriesEpisode
-      seriesEpisodeMin  = seriesEpisode
-    EndIf
-    ; Summarize Episodes
-    If seriesName$ <> seriesNamePrev$ Or seriesSeason <> seriesSeasonPrev Or seriesEpisode > seriesEpisodePrev+1
-      ; Special Handling for one Episode
-      If seriesEpisodeMin = seriesEpisodePrev
-        seriesEpisodeOut$ = Str(seriesEpisodeMin)
-      Else
-        seriesEpisodeOut$ = Str(seriesEpisodeMin)+"-"+Str(seriesEpisodePrev)
-      EndIf
-      ; Output
-      AddGadgetItem(ListSeries, -1, seriesNamePrev$ + Chr(10) + Str(seriesSeasonPrev) + Chr(10) + seriesEpisodeOut$)
-      ; New min episode
-      seriesEpisodeMin = seriesEpisode
-    EndIf
-    ; Store current values
+ExecuteQuery(databaseHandle, seriesQuery$)
+While NextDatabaseRow(databaseHandle)
+  ;Debug GetDatabaseString(databaseHandle,0) + GetDatabaseString(databaseHandle,1) + GetDatabaseString(databaseHandle,2)
+  If seriesSummarize=0 
+    AddGadgetItem(ListSeries, -1, GetDatabaseString(databaseHandle,0) + Chr(10) + GetDatabaseString(databaseHandle,1) + Chr(10) + GetDatabaseString(databaseHandle,2))
+    Continue
+  EndIf
+  ; Summarize
+  seriesName$   = GetDatabaseString(databaseHandle,0)
+  seriesSeason  = GetDatabaseLong(databaseHandle,1)
+  seriesEpisode = GetDatabaseLong(databaseHandle,2)
+  ; First run
+  If seriesNamePrev$ = "" ; And seriesSeasonPrev=0 And seriesEpisode=0
     seriesNamePrev$   = seriesName$
     seriesSeasonPrev  = seriesSeason
     seriesEpisodePrev = seriesEpisode
-  Wend
-  If summarize=1
-    AddGadgetItem(ListSeries, -1, seriesName$ + Chr(10) + Str(seriesSeasonPrev) + Chr(10) + Str(seriesEpisodeMin)+"-"+Str(seriesEpisodePrev))
+    seriesEpisodeMin  = seriesEpisode
   EndIf
-  FinishDatabaseQuery(databaseHandle)
-Else
-  MessageRequester("Error", "Can not execute: "+DatabaseError())
+  ; Summarize Episodes
+  If seriesName$ <> seriesNamePrev$ Or seriesSeason <> seriesSeasonPrev Or seriesEpisode > seriesEpisodePrev+1
+    ; Special Handling for one Episode
+    If seriesEpisodeMin = seriesEpisodePrev
+      seriesEpisodeOut$ = Str(seriesEpisodeMin)
+    Else
+      seriesEpisodeOut$ = Str(seriesEpisodeMin)+"-"+Str(seriesEpisodePrev)
+    EndIf
+    ; Output
+    AddGadgetItem(ListSeries, -1, seriesNamePrev$ + Chr(10) + Str(seriesSeasonPrev) + Chr(10) + seriesEpisodeOut$)
+    ; New min episode
+    seriesEpisodeMin = seriesEpisode
+  EndIf
+  ; Store current values
+  seriesNamePrev$   = seriesName$
+  seriesSeasonPrev  = seriesSeason
+  seriesEpisodePrev = seriesEpisode
+Wend
+If summarize=1
+  AddGadgetItem(ListSeries, -1, seriesName$ + Chr(10) + Str(seriesSeasonPrev) + Chr(10) + Str(seriesEpisodeMin)+"-"+Str(seriesEpisodePrev))
 EndIf
+FinishDatabaseQuery(databaseHandle)
+
+; Close database
+Disconnect(databaseHandle)
 
 ; Window
 Repeat
@@ -128,6 +122,28 @@ Procedure ConfigureList(List, Position, Tabname$, Columns$)
   For i = 1 To CountString(Columns$,",")+1 Step 2
     AddGadgetColumn(List, Int(i/2), StringField(Columns$, i, ","), Val(StringField(Columns$, i+1, ",")))
   Next
+EndProcedure
+
+Procedure Connect(Database$)
+  UseSQLiteDatabase()
+  Database$ = ReplaceString(Database$, "%APPDATA%", GetEnvironmentVariable("APPDATA"), #PB_String_NoCase)
+  Handle = OpenDatabase(#PB_Any, Database$, "", "")
+  If (Handle = 0)
+    MessageRequester("Error", "Can not open database: "+Database$)
+    End
+  EndIf
+  ProcedureReturn Handle
+EndProcedure
+
+Procedure Disconnect(Database)
+  CloseDatabase(Database)
+EndProcedure
+
+Procedure ExecuteQuery(Handle, Query$)
+  If Not DatabaseQuery(Handle, Query$)
+    MessageRequester("Error", "Can not execute: "+DatabaseError())
+    End
+  EndIf
 EndProcedure
 
 Procedure StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized)
