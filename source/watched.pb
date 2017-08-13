@@ -18,6 +18,7 @@ moviesQuery$    = ReadPreferenceString("moviesQuery","")
 seriesTabname$  = ReadPreferenceString("seriesTabname","Series")
 seriesColumns$  = ReadPreferenceString("seriesColumns","Title,338,Season,100,Episode,100")
 seriesQuery$    = ReadPreferenceString("seriesQuery","")
+seriesSummarize = ReadPreferenceInteger("seriesSummarize",1)
 ; Window
 font$           = ReadPreferenceString("font","")
 fontSize        = ReadPreferenceInteger("fontsize",12)
@@ -75,8 +76,42 @@ EndIf
 If DatabaseQuery(databaseHandle, seriesQuery$)
   While NextDatabaseRow(databaseHandle)
     ;Debug GetDatabaseString(databaseHandle,0) + GetDatabaseString(databaseHandle,1) + GetDatabaseString(databaseHandle,2)
-    AddGadgetItem(ListSeries, -1, GetDatabaseString(databaseHandle,0) + Chr(10) + GetDatabaseString(databaseHandle,1) + Chr(10) + GetDatabaseString(databaseHandle,2))
+    If seriesSummarize=0 
+      AddGadgetItem(ListSeries, -1, GetDatabaseString(databaseHandle,0) + Chr(10) + GetDatabaseString(databaseHandle,1) + Chr(10) + GetDatabaseString(databaseHandle,2))
+      Continue
+    EndIf
+    ; Summarize
+    seriesName$   = GetDatabaseString(databaseHandle,0)
+    seriesSeason  = GetDatabaseLong(databaseHandle,1)
+    seriesEpisode = GetDatabaseLong(databaseHandle,2)
+    ; First run
+    If seriesNamePrev$ = "" ; And seriesSeasonPrev=0 And seriesEpisode=0
+      seriesNamePrev$   = seriesName$
+      seriesSeasonPrev  = seriesSeason
+      seriesEpisodePrev = seriesEpisode
+      seriesEpisodeMin  = seriesEpisode
+    EndIf
+    ; Summarize Episodes
+    If seriesName$ <> seriesNamePrev$ Or seriesSeason <> seriesSeasonPrev Or seriesEpisode > seriesEpisodePrev+1
+      ; Special Handling for one Episode
+      If seriesEpisodeMin = seriesEpisodePrev
+        seriesEpisodeOut$ = Str(seriesEpisodeMin)
+      Else
+        seriesEpisodeOut$ = Str(seriesEpisodeMin)+"-"+Str(seriesEpisodePrev)
+      EndIf
+      ; Output
+      AddGadgetItem(ListSeries, -1, seriesNamePrev$ + Chr(10) + Str(seriesSeasonPrev) + Chr(10) + seriesEpisodeOut$)
+      ; New min episode
+      seriesEpisodeMin = seriesEpisode
+    EndIf
+    ; Store current values
+    seriesNamePrev$   = seriesName$
+    seriesSeasonPrev  = seriesSeason
+    seriesEpisodePrev = seriesEpisode
   Wend
+  If summarize=1
+    AddGadgetItem(ListSeries, -1, seriesName$ + Chr(10) + Str(seriesSeasonPrev) + Chr(10) + Str(seriesEpisodeMin)+"-"+Str(seriesEpisodePrev))
+  EndIf
   FinishDatabaseQuery(databaseHandle)
 Else
   MessageRequester("Error", "Can not execute: "+DatabaseError())
