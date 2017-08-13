@@ -16,6 +16,7 @@ font$           = ReadPreferenceString("font","")
 fontSize        = ReadPreferenceInteger("fontsize",12)
 width           = ReadPreferenceInteger("width",600)
 height          = ReadPreferenceInteger("height",400)
+maximized       = ReadPreferenceInteger("maximized",0)
 
 ; GUI
 If LoadFont(0, font$, fontSize)
@@ -23,6 +24,9 @@ If LoadFont(0, font$, fontSize)
 EndIf
 XIncludeFile "watched-window.pbf"
 OpenWindowMain(0, 0, width, height)
+If maximized = 1
+  ShowWindow_(WindowID(WindowMain),#SW_MAXIMIZE)
+EndIf
 ResizeGadgetsWindowMain()
 
 ; Open Database

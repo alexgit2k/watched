@@ -17,3 +17,4 @@ Watched can be configured in the file watched.ini
 - fontsize: Fontsize
 - width: Window-width
 - height: Window-height
+- maximized: Start window maximized
