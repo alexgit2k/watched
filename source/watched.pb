@@ -1,4 +1,4 @@
-﻿; Show Kodi-Watched Movies & Episodes
+﻿; Show Kodi-Watched Movies & Series
 ; Alex, 2017/07/16
 
 ; Config
@@ -10,8 +10,15 @@ If (OpenPreferences(ini$) = 0)
 EndIf
 ; Read Config
 database$       = ReadPreferenceString("database","")
-moviesQuery$    = ReadPreferenceString("movies","")
-episodesQuery$  = ReadPreferenceString("episodes","")
+; Movies
+moviesTabname$  = ReadPreferenceString("moviesTabname","Movies")
+moviesColumns$  = ReadPreferenceString("moviesColumns","Title,438,Year,100")
+moviesQuery$    = ReadPreferenceString("moviesQuery","")
+; Series
+seriesTabname$  = ReadPreferenceString("seriesTabname","Series")
+seriesColumns$  = ReadPreferenceString("seriesColumns","Title,338,Season,100,Episode,100")
+seriesQuery$    = ReadPreferenceString("seriesQuery","")
+; Window
 font$           = ReadPreferenceString("font","")
 fontSize        = ReadPreferenceInteger("fontsize",12)
 width           = ReadPreferenceInteger("width",600)
@@ -28,6 +35,18 @@ If maximized = 1
   ShowWindow_(WindowID(WindowMain),#SW_MAXIMIZE)
 EndIf
 ResizeGadgetsWindowMain()
+
+; GUI-Texts
+SetGadgetItemText(PanelHandle,0, moviesTabname$)
+RemoveGadgetColumn(ListMovies,#PB_All)
+For i = 1 To CountString(moviesColumns$,",")+1 Step 2
+  AddGadgetColumn(ListMovies, Int(i/2), StringField(moviesColumns$, i, ","), Val(StringField(moviesColumns$, i+1, ",")))
+Next
+SetGadgetItemText(PanelHandle,1, seriesTabname$)
+RemoveGadgetColumn(ListSeries,#PB_All)
+For i = 1 To CountString(seriesColumns$,",")+1 Step 2
+  AddGadgetColumn(ListSeries, Int(i/2), StringField(seriesColumns$, i, ","), Val(StringField(seriesColumns$, i+1, ",")))
+Next
 
 ; Open Database
 UseSQLiteDatabase()
@@ -52,8 +71,8 @@ Else
   MessageRequester("Error", "Can not execute: "+DatabaseError())
 EndIf
 
-; Query Episodes
-If DatabaseQuery(databaseHandle, episodesQuery$)
+; Query Series
+If DatabaseQuery(databaseHandle, seriesQuery$)
   While NextDatabaseRow(databaseHandle)
     ;Debug GetDatabaseString(databaseHandle,0) + GetDatabaseString(databaseHandle,1) + GetDatabaseString(databaseHandle,2)
     AddGadgetItem(ListSeries, -1, GetDatabaseString(databaseHandle,0) + Chr(10) + GetDatabaseString(databaseHandle,1) + Chr(10) + GetDatabaseString(databaseHandle,2))
