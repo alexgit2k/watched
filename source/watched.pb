@@ -23,6 +23,7 @@ If LoadFont(0, font$, fontSize)
 EndIf
 XIncludeFile "watched-window.pbf"
 OpenWindowMain(0, 0, width, height)
+ResizeGadgetsWindowMain()
 
 ; Open Database
 UseSQLiteDatabase()
