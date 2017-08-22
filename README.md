@@ -19,7 +19,9 @@ Watched can be configured in the file watched.ini
 - seriesTabname: Title
 - seriesColumns: Headlines and widths
 - seriesQuery: Query
+- seriesSummarizeQuery: Query for summarized episodes
 - seriesSummarize: Summarize episodes per season
+- seriesSummarizeCol: Column used to summarize
 ### Window
 - title: Window-title
 - font: Font

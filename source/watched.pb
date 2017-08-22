@@ -9,27 +9,31 @@ If (OpenPreferences(ini$) = 0)
   End
 EndIf
 ; Read Config
-database$       = ReadPreferenceString("database","")
+database$             = ReadPreferenceString("database","")
 ; Movies
-moviesTabname$  = ReadPreferenceString("moviesTabname","")
-moviesColumns$  = ReadPreferenceString("moviesColumns","")
-moviesQuery$    = ReadPreferenceString("moviesQuery","")
+moviesTabname$        = ReadPreferenceString("moviesTabname","")
+moviesColumns$        = ReadPreferenceString("moviesColumns","")
+moviesQuery$          = ReadPreferenceString("moviesQuery","")
 ; Series
-seriesTabname$  = ReadPreferenceString("seriesTabname","")
-seriesColumns$  = ReadPreferenceString("seriesColumns","")
-seriesQuery$    = ReadPreferenceString("seriesQuery","")
-seriesSummarize = ReadPreferenceInteger("seriesSummarize",0)
+seriesTabname$        = ReadPreferenceString("seriesTabname","")
+seriesColumns$        = ReadPreferenceString("seriesColumns","")
+seriesQuery$          = ReadPreferenceString("seriesQuery","")
+seriesSummarizeQuery$ = ReadPreferenceString("seriesSummarizeQuery","")
+seriesSummarize       = ReadPreferenceInteger("seriesSummarize",0)
+seriesSummarizeCol    = ReadPreferenceInteger("seriesSummarizeCol",0)
 ; Window
-title$          = ReadPreferenceString("title","")
-font$           = ReadPreferenceString("font","")
-fontSize        = ReadPreferenceInteger("fontsize",0)
-width           = ReadPreferenceInteger("width",0)
-height          = ReadPreferenceInteger("height",0)
-startTab        = ReadPreferenceInteger("startTab",0)
-maximized       = ReadPreferenceInteger("maximized",0)
+title$                = ReadPreferenceString("title","")
+font$                 = ReadPreferenceString("font","")
+fontSize              = ReadPreferenceInteger("fontsize",0)
+width                 = ReadPreferenceInteger("width",0)
+height                = ReadPreferenceInteger("height",0)
+startTab              = ReadPreferenceInteger("startTab",0)
+maximized             = ReadPreferenceInteger("maximized",0)
 
 ; Procedures
 Declare ConfigureList(Gadget, Position, Tabname$, Columns$)
+Declare PopulateList(Handle, List, Query$)
+Declare SummarizeList(List, Column)
 Declare Connect(Database$)
 Declare Disconnect(Database)
 Declare ExecuteQuery(Handle, Query$)
@@ -43,63 +47,15 @@ StartWindow(width, height, title$, font$, fontSize, startTab, maximized)
 ConfigureList(ListMovies, 0, moviesTabname$, moviesColumns$)
 ConfigureList(ListSeries, 1, seriesTabname$, seriesColumns$)
 
-; Open Database
+; Populate
 databaseHandle = Connect(database$)
-
-; Query Movies
-ExecuteQuery(databaseHandle, moviesQuery$)
-While NextDatabaseRow(databaseHandle)
-  ;Debug GetDatabaseString(databaseHandle,0)
-  movieName$ = GetDatabaseString(databaseHandle,0)
-  movieYear$ = Left(Right(movieName$,5),4)
-  movieName$ = Left(movieName$, Len(movieName$)-7)
-  AddGadgetItem(ListMovies, -1, movieName$ + Chr(10) + movieYear$)
-Wend
-FinishDatabaseQuery(databaseHandle)
-
-; Query Series
-ExecuteQuery(databaseHandle, seriesQuery$)
-While NextDatabaseRow(databaseHandle)
-  ;Debug GetDatabaseString(databaseHandle,0) + GetDatabaseString(databaseHandle,1) + GetDatabaseString(databaseHandle,2)
-  If seriesSummarize=0 
-    AddGadgetItem(ListSeries, -1, GetDatabaseString(databaseHandle,0) + Chr(10) + GetDatabaseString(databaseHandle,1) + Chr(10) + GetDatabaseString(databaseHandle,2))
-    Continue
-  EndIf
-  ; Summarize
-  seriesName$   = GetDatabaseString(databaseHandle,0)
-  seriesSeason  = GetDatabaseLong(databaseHandle,1)
-  seriesEpisode = GetDatabaseLong(databaseHandle,2)
-  ; First run
-  If seriesNamePrev$ = "" ; And seriesSeasonPrev=0 And seriesEpisode=0
-    seriesNamePrev$   = seriesName$
-    seriesSeasonPrev  = seriesSeason
-    seriesEpisodePrev = seriesEpisode
-    seriesEpisodeMin  = seriesEpisode
-  EndIf
-  ; Summarize Episodes
-  If seriesName$ <> seriesNamePrev$ Or seriesSeason <> seriesSeasonPrev Or seriesEpisode > seriesEpisodePrev+1
-    ; Special Handling for one Episode
-    If seriesEpisodeMin = seriesEpisodePrev
-      seriesEpisodeOut$ = Str(seriesEpisodeMin)
-    Else
-      seriesEpisodeOut$ = Str(seriesEpisodeMin)+"-"+Str(seriesEpisodePrev)
-    EndIf
-    ; Output
-    AddGadgetItem(ListSeries, -1, seriesNamePrev$ + Chr(10) + Str(seriesSeasonPrev) + Chr(10) + seriesEpisodeOut$)
-    ; New min episode
-    seriesEpisodeMin = seriesEpisode
-  EndIf
-  ; Store current values
-  seriesNamePrev$   = seriesName$
-  seriesSeasonPrev  = seriesSeason
-  seriesEpisodePrev = seriesEpisode
-Wend
-If summarize=1
-  AddGadgetItem(ListSeries, -1, seriesName$ + Chr(10) + Str(seriesSeasonPrev) + Chr(10) + Str(seriesEpisodeMin)+"-"+Str(seriesEpisodePrev))
+PopulateList(databaseHandle, ListMovies, moviesQuery$)
+If (seriesSummarize = 0)
+  PopulateList(databaseHandle, ListSeries, seriesQuery$)
+Else
+  PopulateList(databaseHandle, ListSeries, seriesSummarizeQuery$)
+  SummarizeList(ListSeries, seriesSummarizeCol)
 EndIf
-FinishDatabaseQuery(databaseHandle)
-
-; Close database
 Disconnect(databaseHandle)
 
 ; Window
@@ -121,6 +77,62 @@ Procedure ConfigureList(List, Position, Tabname$, Columns$)
   ; Add Columns
   For i = 1 To CountString(Columns$,",")+1 Step 2
     AddGadgetColumn(List, Int(i/2), StringField(Columns$, i, ","), Val(StringField(Columns$, i+1, ",")))
+  Next
+EndProcedure
+
+Procedure PopulateList(Handle, List, Query$)
+  ExecuteQuery(Handle, Query$)
+  ; Loop over resultset
+  While NextDatabaseRow(Handle)
+    ; Debug GetDatabaseString(Handle,0)
+    content$ = GetDatabaseString(Handle,0)
+    ; Get each column
+    For i=1 To DatabaseColumns(Handle)-1
+      content$ = content$ + Chr(10) + GetDatabaseString(Handle,i)
+    Next
+    AddGadgetItem(List, -1, content$)
+  Wend
+  FinishDatabaseQuery(Handle)
+EndProcedure
+
+Procedure SummarizeList(List, Column)
+  Dim episodes(0)
+  For i=0 To CountGadgetItems(List)
+    ; Get episodes
+    content$ = GetGadgetItemText(List, i, Column-1)
+    ReDim episodes(CountString(content$,","))
+    For j=0 To CountString(content$,",")
+      episodes(j) = Val(StringField(content$, j+1, ","))
+    Next
+    ; Only one episode
+    If ArraySize(episodes())=0
+      Continue
+    EndIf
+    ; Summarize episodes
+    new$ = ""
+    seriesEpisodePrev = episodes(0)
+    seriesEpisodeMin  = episodes(0)
+    For j=1 To ArraySize(episodes())
+      ; Following episode
+      If episodes(j) = seriesEpisodePrev+1
+        seriesEpisodePrev = episodes(j)
+      ; Gap between episodes
+      Else
+        ; Only one episode
+        If seriesEpisodePrev=seriesEpisodeMin
+          new$ = new$ + "," + Str(seriesEpisodePrev)
+        ; Several episodes
+        Else
+          new$ = new$ + "," + Str(seriesEpisodeMin) + "-" + Str(seriesEpisodePrev)
+        EndIf
+        seriesEpisodePrev = episodes(j)
+        seriesEpisodeMin  = episodes(j)
+      EndIf
+    Next
+    If seriesEpisodePrev <> seriesEpisodeMin
+      new$ = new$ + "," + Str(seriesEpisodeMin) + "-" + Str(seriesEpisodePrev)
+    EndIf
+    SetGadgetItemText(List, i, Trim(new$,","), Column-1)
   Next
 EndProcedure
 
