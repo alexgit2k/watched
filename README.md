@@ -30,3 +30,4 @@ Watched can be configured in the file watched.ini
 - height: Window-height
 - startTab: = Open tab-number at start (0-1)
 - maximized: Start window maximized
+- menu: Context-menu text

@@ -29,6 +29,7 @@ width                 = ReadPreferenceInteger("width",0)
 height                = ReadPreferenceInteger("height",0)
 startTab              = ReadPreferenceInteger("startTab",0)
 maximized             = ReadPreferenceInteger("maximized",0)
+menu$                 = ReadPreferenceString("menu","")
 
 ; Procedures
 Declare ConfigureList(Gadget, Position, Tabname$, Columns$)
@@ -38,6 +39,9 @@ Declare Connect(Database$)
 Declare Disconnect(Database)
 Declare ExecuteQuery(Handle, Query$)
 Declare StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized)
+Declare MenuShow(MenuItem$)
+Declare MenuHandle()
+Declare MenuCopySelection(List)
 
 ; GUI
 XIncludeFile "watched-window.pbf"
@@ -64,8 +68,17 @@ Repeat
   Select EventWindow()
     Case WindowMain
       WindowMain_Events(Event)
-    EndSelect
- Until Event = #PB_Event_CloseWindow
+  EndSelect
+  ; ContextMenu
+  Select Event
+    Case #PB_Event_Gadget
+      If EventType() = #PB_EventType_RightClick And (EventGadget() = ListMovies Or EventGadget() = ListSeries)
+        MenuShow(menu$)
+      EndIf
+    Case #PB_Event_Menu
+      MenuHandle()
+  EndSelect
+Until Event = #PB_Event_CloseWindow
  
 ; ----------------------------------------------------------------------------------------------------------------------------------
 
@@ -171,6 +184,32 @@ Procedure StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximize
     ShowWindow_(WindowID(WindowMain),#SW_MAXIMIZE)
   EndIf
   ResizeGadgetsWindowMain()
+EndProcedure
+
+Procedure MenuShow(MenuItem$)
+  If CreatePopupMenu(0)
+    MenuItem(1, MenuItem$)
+  EndIf
+  DisplayPopupMenu(0, WindowID(WindowMain))
+EndProcedure
+
+Procedure MenuHandle()
+  If EventMenu() = 1
+    If GetGadgetState(PanelHandle)=0 And GetGadgetState(ListMovies) <> -1
+      MenuCopySelection(ListMovies)
+    EndIf
+    If GetGadgetState(PanelHandle)=1 And GetGadgetState(ListSeries) <> -1
+      MenuCopySelection(ListSeries)
+    EndIf
+  EndIf
+EndProcedure
+
+Procedure MenuCopySelection(List)
+  content$ = ""
+  For i=0 To GetGadgetAttribute(List,#PB_ListIcon_ColumnCount)-1
+    content$ = content$ + ", " + GetGadgetItemText(List,GetGadgetState(List),i)
+  Next
+  SetClipboardText(Trim(Trim(content$,",")))
 EndProcedure
 
 ; IDE Options = PureBasic 5.60 (Windows - x86)
