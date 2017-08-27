@@ -1,64 +1,41 @@
 ﻿; Show Kodi-Watched Movies & Series
 ; Alex, 2017/07/16
 
-; Config
-ini$ = "watched.ini"
-; Open Preferences
-If (OpenPreferences(ini$) = 0)
-  MessageRequester("Error", "Can not open ini-file: "+ini$)
-  End
-EndIf
-; Read Config
-database$             = ReadPreferenceString("database","")
-; Movies
-moviesTabname$        = ReadPreferenceString("moviesTabname","")
-moviesColumns$        = ReadPreferenceString("moviesColumns","")
-moviesQuery$          = ReadPreferenceString("moviesQuery","")
-; Series
-seriesTabname$        = ReadPreferenceString("seriesTabname","")
-seriesColumns$        = ReadPreferenceString("seriesColumns","")
-seriesQuery$          = ReadPreferenceString("seriesQuery","")
-seriesSummarizeQuery$ = ReadPreferenceString("seriesSummarizeQuery","")
-seriesSummarize       = ReadPreferenceInteger("seriesSummarize",0)
-seriesSummarizeCol    = ReadPreferenceInteger("seriesSummarizeCol",0)
-; Window
-title$                = ReadPreferenceString("title","")
-font$                 = ReadPreferenceString("font","")
-fontSize              = ReadPreferenceInteger("fontsize",0)
-width                 = ReadPreferenceInteger("width",0)
-height                = ReadPreferenceInteger("height",0)
-startTab              = ReadPreferenceInteger("startTab",0)
-maximized             = ReadPreferenceInteger("maximized",0)
-menu$                 = ReadPreferenceString("menu","")
+; Variables
+Global NewMap Config$()
 
 ; Procedures
+Declare ReadPreference(Map PrefMap$())
 Declare ConfigureList(Gadget, Position, Tabname$, Columns$)
 Declare PopulateList(Handle, List, Query$)
 Declare SummarizeList(List, Column)
 Declare Connect(Database$)
 Declare Disconnect(Database)
 Declare ExecuteQuery(Handle, Query$)
-Declare StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized)
+Declare StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized$)
 Declare MenuShow(MenuItem$)
 Declare MenuHandle()
 Declare MenuCopySelection(List)
 
+; Config
+ReadPreference(Config$())
+
 ; GUI
 XIncludeFile "watched-window.pbf"
-StartWindow(width, height, title$, font$, fontSize, startTab, maximized)
+StartWindow(Val(Config$("width")), Val(Config$("height")), Config$("title"), Config$("font"), Val(Config$("fontsize")), Val(Config$("startTab")), Config$("maximized"))
 
 ; GUI-Texts
-ConfigureList(ListMovies, 0, moviesTabname$, moviesColumns$)
-ConfigureList(ListSeries, 1, seriesTabname$, seriesColumns$)
+ConfigureList(ListMovies, 0, Config$("moviesTabname"), Config$("moviesColumns"))
+ConfigureList(ListSeries, 1, Config$("seriesTabname"), Config$("seriesColumns"))
 
 ; Populate
-databaseHandle = Connect(database$)
-PopulateList(databaseHandle, ListMovies, moviesQuery$)
-If (seriesSummarize = 0)
-  PopulateList(databaseHandle, ListSeries, seriesQuery$)
+databaseHandle = Connect(Config$("database"))
+PopulateList(databaseHandle, ListMovies, Config$("moviesQuery"))
+If (Config$("seriesSummarize") = "0")
+  PopulateList(databaseHandle, ListSeries, Config$("seriesQuery"))
 Else
-  PopulateList(databaseHandle, ListSeries, seriesSummarizeQuery$)
-  SummarizeList(ListSeries, seriesSummarizeCol)
+  PopulateList(databaseHandle, ListSeries, Config$("seriesSummarizeQuery"))
+  SummarizeList(ListSeries, Val(Config$("seriesSummarizeCol")))
 EndIf
 Disconnect(databaseHandle)
 
@@ -73,7 +50,7 @@ Repeat
   Select Event
     Case #PB_Event_Gadget
       If EventType() = #PB_EventType_RightClick And (EventGadget() = ListMovies Or EventGadget() = ListSeries)
-        MenuShow(menu$)
+        MenuShow(Config$("menu"))
       EndIf
     Case #PB_Event_Menu
       MenuHandle()
@@ -171,7 +148,7 @@ Procedure ExecuteQuery(Handle, Query$)
   EndIf
 EndProcedure
 
-Procedure StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized)
+Procedure StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized$)
   ; Load Font
   If LoadFont(0, Font$, FontSize)
     SetGadgetFont(#PB_Default, FontID(0))
@@ -180,7 +157,7 @@ Procedure StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximize
   OpenWindowMain(0, 0, Width, Height)
   SetWindowTitle(WindowMain, Title$)
   SetGadgetState(PanelHandle, StartTab)
-  If Maximized = 1
+  If Maximized$ = "1"
     ShowWindow_(WindowID(WindowMain),#SW_MAXIMIZE)
   EndIf
   ResizeGadgetsWindowMain()
@@ -210,6 +187,25 @@ Procedure MenuCopySelection(List)
     content$ = content$ + ", " + GetGadgetItemText(List,GetGadgetState(List),i)
   Next
   SetClipboardText(Trim(Trim(content$,",")))
+EndProcedure
+
+Procedure ReadPreference(Map PrefMap$())
+  ; Open Preferences
+  PrefMap$("FileIni") = GetFilePart(ProgramFilename(),#PB_FileSystem_NoExtension) + ".ini"
+  If (OpenPreferences(PrefMap$("FileIni")) = 0)
+    MessageRequester("Error", "Can not open ini-file: "+PrefMap$("FileIni"))
+    End
+  EndIf
+  
+  ; Read
+  ExaminePreferenceGroups()
+  While NextPreferenceGroup()
+    ExaminePreferenceKeys()
+    While  NextPreferenceKey()
+      ; Debug PreferenceGroupName() + ": " + PreferenceKeyName() + "=" + PreferenceKeyValue()
+      PrefMap$(PreferenceKeyName())=PreferenceKeyValue()
+    Wend
+  Wend
 EndProcedure
 
 ; IDE Options = PureBasic 5.60 (Windows - x86)

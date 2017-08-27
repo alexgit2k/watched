@@ -10,6 +10,7 @@ Show which movies or series have already been watched in Kodi.
 
 ## Configuration
 Watched can be configured in the file watched.ini
+### Base
 - database: Location of WatchedList sqlite-database
 ### Movies
 - moviesTabname: Title
