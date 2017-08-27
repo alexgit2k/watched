@@ -3,19 +3,24 @@
 
 ; Variables
 Global NewMap Config$()
+Global NewMap SeasonComplete()
 
 ; Procedures
 Declare ReadPreference(Map PrefMap$())
 Declare ConfigureList(Gadget, Position, Tabname$, Columns$)
-Declare PopulateList(Handle, List, Query$)
+Declare PopulateList(Handle, List, Query$, Complete)
 Declare SummarizeList(List, Column)
 Declare Connect(Database$)
 Declare Disconnect(Database)
 Declare ExecuteQuery(Handle, Query$)
 Declare StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximized$)
-Declare MenuShow(MenuItem$)
+Declare MenuShow(ActiveList)
 Declare MenuHandle()
 Declare MenuCopySelection(List)
+Declare MenuHighlightSelection(List)
+Declare MarkComplete(List,Row,State$)
+Declare GetSeasonComplete()
+Declare.s GetTitleSeason(List,Row,Cols$)
 
 ; Config
 ReadPreference(Config$())
@@ -29,12 +34,13 @@ ConfigureList(ListMovies, 0, Config$("moviesTabname"), Config$("moviesColumns"))
 ConfigureList(ListSeries, 1, Config$("seriesTabname"), Config$("seriesColumns"))
 
 ; Populate
+GetSeasonComplete()
 databaseHandle = Connect(Config$("database"))
-PopulateList(databaseHandle, ListMovies, Config$("moviesQuery"))
+PopulateList(databaseHandle, ListMovies, Config$("moviesQuery"), 0)
 If (Config$("seriesSummarize") = "0")
-  PopulateList(databaseHandle, ListSeries, Config$("seriesQuery"))
+  PopulateList(databaseHandle, ListSeries, Config$("seriesQuery"), 1)
 Else
-  PopulateList(databaseHandle, ListSeries, Config$("seriesSummarizeQuery"))
+  PopulateList(databaseHandle, ListSeries, Config$("seriesSummarizeQuery"), 1)
   SummarizeList(ListSeries, Val(Config$("seriesSummarizeCol")))
 EndIf
 Disconnect(databaseHandle)
@@ -50,7 +56,7 @@ Repeat
   Select Event
     Case #PB_Event_Gadget
       If EventType() = #PB_EventType_RightClick And (EventGadget() = ListMovies Or EventGadget() = ListSeries)
-        MenuShow(Config$("menu"))
+        MenuShow(EventGadget())
       EndIf
     Case #PB_Event_Menu
       MenuHandle()
@@ -70,7 +76,7 @@ Procedure ConfigureList(List, Position, Tabname$, Columns$)
   Next
 EndProcedure
 
-Procedure PopulateList(Handle, List, Query$)
+Procedure PopulateList(Handle, List, Query$, Complete)
   ExecuteQuery(Handle, Query$)
   ; Loop over resultset
   While NextDatabaseRow(Handle)
@@ -81,6 +87,13 @@ Procedure PopulateList(Handle, List, Query$)
       content$ = content$ + Chr(10) + GetDatabaseString(Handle,i)
     Next
     AddGadgetItem(List, -1, content$)
+    ; Complete
+    If Complete = 1 And Config$("completeFeature")="1"
+      row = CountGadgetItems(List)-1
+      If (SeasonComplete(GetTitleSeason(List,row,Config$("seriesTitleSeasonCols")))=1)
+        SetGadgetItemColor(List, row, #PB_Gadget_BackColor, Val(Config$("completeColor")))
+      EndIf
+    EndIf
   Wend
   FinishDatabaseQuery(Handle)
 EndProcedure
@@ -142,7 +155,12 @@ Procedure Disconnect(Database)
 EndProcedure
 
 Procedure ExecuteQuery(Handle, Query$)
-  If Not DatabaseQuery(Handle, Query$)
+  If FindString(Query$,"SELECT ", 0, #PB_String_NoCase)=1
+    result=DatabaseQuery(Handle, Query$)
+  Else
+    result=DatabaseUpdate(Handle, Query$)
+  EndIf
+  If result=0
     MessageRequester("Error", "Can not execute: "+DatabaseError())
     End
   EndIf
@@ -163,21 +181,34 @@ Procedure StartWindow(Width, Height, Title$, Font$, FontSize, StartTab, Maximize
   ResizeGadgetsWindowMain()
 EndProcedure
 
-Procedure MenuShow(MenuItem$)
+Procedure MenuShow(ActiveList)
+  If ActiveList=ListMovies
+    MenuItems$ = Config$("moviesMenu")
+  ElseIf ActiveList=ListSeries
+    MenuItems$ = Config$("seriesMenu")
+  EndIf
   If CreatePopupMenu(0)
-    MenuItem(1, MenuItem$)
+    ; Add Menus
+    For i = 1 To CountString(MenuItems$,",")+1
+      MenuItem(i, StringField(MenuItems$, i, ","))
+    Next
   EndIf
   DisplayPopupMenu(0, WindowID(WindowMain))
 EndProcedure
 
 Procedure MenuHandle()
+  ; Get active list
+  If GetGadgetState(PanelHandle)=0 And GetGadgetState(ListMovies) <> -1
+    ActiveList = ListMovies
+  EndIf
+  If GetGadgetState(PanelHandle)=1 And GetGadgetState(ListSeries) <> -1
+    ActiveList = ListSeries
+  EndIf
+  ; Fire menu handler
   If EventMenu() = 1
-    If GetGadgetState(PanelHandle)=0 And GetGadgetState(ListMovies) <> -1
-      MenuCopySelection(ListMovies)
-    EndIf
-    If GetGadgetState(PanelHandle)=1 And GetGadgetState(ListSeries) <> -1
-      MenuCopySelection(ListSeries)
-    EndIf
+    MenuCopySelection(ActiveList)
+  ElseIf EventMenu() = 2 And Config$("completeFeature")="1"
+    MenuHighlightSelection(ActiveList)
   EndIf
 EndProcedure
 
@@ -187,6 +218,48 @@ Procedure MenuCopySelection(List)
     content$ = content$ + ", " + GetGadgetItemText(List,GetGadgetState(List),i)
   Next
   SetClipboardText(Trim(Trim(content$,",")))
+EndProcedure
+
+Procedure MenuHighlightSelection(List)
+  row = GetGadgetState(List)
+  If GetGadgetItemColor(List, row, #PB_Gadget_BackColor) = -1
+    SetGadgetItemColor(List, row, #PB_Gadget_BackColor, Val(Config$("completeColor")))
+    MarkComplete(List,row,"1")
+  Else
+    SetGadgetItemColor(List, row, #PB_Gadget_BackColor, -1)
+    MarkComplete(List,row,"0")
+  EndIf
+EndProcedure
+
+Procedure MarkComplete(List,Row,State$)
+  ; Get title and season  
+  titleseason$ = GetTitleSeason(List,Row,Config$("seriesTitleSeasonCols"))
+  ; Store
+  databaseHandle = Connect(Config$("FileDatabase"))
+  ExecuteQuery(databaseHandle, "REPLACE INTO season_complete VALUES('"+titleseason$+"',"+State$+")")
+  Disconnect(databaseHandle)
+EndProcedure
+
+Procedure GetSeasonComplete()
+  If Config$("completeFeature") <> "1"
+    ProcedureReturn
+  EndIf
+  ; Read completed seasons
+  databaseHandle = Connect(Config$("FileDatabase"))
+  ExecuteQuery(databaseHandle, "SELECT * FROM season_complete WHERE complete=1")
+  While NextDatabaseRow(databaseHandle)
+    SeasonComplete(GetDatabaseString(databaseHandle,0))=1
+  Wend
+  FinishDatabaseQuery(databaseHandle)
+  Disconnect(databaseHandle)
+EndProcedure
+
+Procedure.s GetTitleSeason(List,Row,Cols$)
+  content$ = ""
+  For i=0 To CountString(Cols$,",")
+    content$ = content$ + "#" + GetGadgetItemText(List, Row, Val(StringField(Cols$, i+1, ","))-1)
+  Next
+  ProcedureReturn ReplaceString(Mid(content$, 2),"'","''")
 EndProcedure
 
 Procedure ReadPreference(Map PrefMap$())
@@ -206,6 +279,10 @@ Procedure ReadPreference(Map PrefMap$())
       PrefMap$(PreferenceKeyName())=PreferenceKeyValue()
     Wend
   Wend
+
+  ; Special Configs
+  PrefMap$("FileDatabase") = GetFilePart(ProgramFilename(),#PB_FileSystem_NoExtension) + ".db"
+  PrefMap$("completeColor") = ReplaceString(PrefMap$("completeColor"), "#", "$")
 EndProcedure
 
 ; IDE Options = PureBasic 5.60 (Windows - x86)

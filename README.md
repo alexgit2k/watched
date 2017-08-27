@@ -16,6 +16,7 @@ Watched can be configured in the file watched.ini
 - moviesTabname: Title
 - moviesColumns: Headlines and widths
 - moviesQuery: Query
+- moviesMenu: Context-menu text
 ### Series
 - seriesTabname: Title
 - seriesColumns: Headlines and widths
@@ -23,6 +24,9 @@ Watched can be configured in the file watched.ini
 - seriesSummarizeQuery: Query for summarized episodes
 - seriesSummarize: Summarize episodes per season
 - seriesSummarizeCol: Column used to summarize
+- seriesTitleSeasonCols: Columns for title and season (used for marking completed seasons)
+- seriesMenu: Context-menu text
+- completeFeature: Enable marking of completed seasons
 ### Window
 - title: Window-title
 - font: Font
@@ -31,4 +35,4 @@ Watched can be configured in the file watched.ini
 - height: Window-height
 - startTab: = Open tab-number at start (0-1)
 - maximized: Start window maximized
-- menu: Context-menu text
+- completeColor = Color for marking completed seasons
