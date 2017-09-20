@@ -134,6 +134,8 @@ Procedure SummarizeList(List, Column)
     Next
     If seriesEpisodePrev <> seriesEpisodeMin
       new$ = new$ + "," + Str(seriesEpisodeMin) + "-" + Str(seriesEpisodePrev)
+    Else
+      new$ = new$ + "," + Str(seriesEpisodePrev)
     EndIf
     SetGadgetItemText(List, i, Trim(new$,","), Column-1)
   Next
