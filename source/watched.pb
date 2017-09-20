@@ -279,6 +279,9 @@ Procedure ReadPreference(Map PrefMap$())
       PrefMap$(PreferenceKeyName())=PreferenceKeyValue()
     Wend
   Wend
+  
+  ; Close
+  ClosePreferences()
 
   ; Special Configs
   PrefMap$("FileDatabase") = GetFilePart(ProgramFilename(),#PB_FileSystem_NoExtension) + ".db"
